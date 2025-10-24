@@ -54,28 +54,107 @@ export class WalletService {
       throw new BadRequestException('Amount must be greater than zero');
     }
 
-    return this.dataSource.transaction(async (transactionalEntityManager) => {
+    return this.dataSource.transaction(async transactionalEntityManager => {
       const user = await transactionalEntityManager.findOne(User, { where: { id: userId }, lock: { mode: 'pessimistic_write' } });
       
       if (!user) {
         throw new NotFoundException('User not found');
       }
 
-      if (Number(user.walletBalance) < amount) {
+      if (user.walletBalance < amount) {
         throw new BadRequestException('Insufficient funds');
       }
 
-      user.walletBalance = Number(user.walletBalance) - amount;
+      user.walletBalance -= amount;
       await transactionalEntityManager.save(user);
 
-      const transaction = new WalletTransaction({
-        amount,
-        type: TransactionType.WITHDRAWAL,
-        description: description || 'Wallet withdrawal',
+      const transaction = this.transactionRepository.create({
         userId,
+        amount: -amount,
+        type: TransactionType.WITHDRAWAL,
+        description: description || 'Withdrawal',
+        balanceAfter: user.walletBalance,
       });
 
-      return transactionalEntityManager.save(WalletTransaction, transaction);
+      return transactionalEntityManager.save(transaction);
+    });
+  }
+
+  async transfer(
+    fromUserId: string,
+    toUserId: string,
+    amount: number,
+    description?: string,
+  ): Promise<{ transaction: WalletTransaction; recipientTransaction: WalletTransaction }> {
+    if (amount <= 0) {
+      throw new BadRequestException('Amount must be greater than zero');
+    }
+
+    if (fromUserId === toUserId) {
+      throw new BadRequestException('Cannot transfer to yourself');
+    }
+
+    return this.dataSource.transaction(async transactionalEntityManager => {
+      // Get and lock both users
+      const [fromUser, toUser] = await Promise.all([
+        transactionalEntityManager.findOne(User, { 
+          where: { id: fromUserId },
+          lock: { mode: 'pessimistic_write' },
+        }),
+        transactionalEntityManager.findOne(User, { 
+          where: { id: toUserId },
+          lock: { mode: 'pessimistic_write' },
+        }),
+      ]);
+
+      if (!fromUser) {
+        throw new NotFoundException('Sender not found');
+      }
+      if (!toUser) {
+        throw new NotFoundException('Recipient not found');
+      }
+
+      if (fromUser.walletBalance < amount) {
+        throw new BadRequestException('Insufficient funds for transfer');
+      }
+
+      // Update balances
+      fromUser.walletBalance -= amount;
+      toUser.walletBalance += amount;
+
+      await Promise.all([
+        transactionalEntityManager.save(fromUser),
+        transactionalEntityManager.save(toUser),
+      ]);
+
+      // Create transaction records
+      const transaction = this.transactionRepository.create({
+        userId: fromUserId,
+        relatedUserId: toUserId,
+        amount: -amount,
+        type: TransactionType.TRANSFER_OUT,
+        description: description || `Transfer to ${toUser.email}`,
+        balanceAfter: fromUser.walletBalance,
+      });
+
+      const recipientTransaction = this.transactionRepository.create({
+        userId: toUserId,
+        relatedUserId: fromUserId,
+        amount,
+        type: TransactionType.TRANSFER_IN,
+        description: description || `Transfer from ${fromUser.email}`,
+        balanceAfter: toUser.walletBalance,
+      });
+
+      const [savedTransaction, savedRecipientTransaction] = await Promise.all([
+        transactionalEntityManager.save(transaction),
+        transactionalEntityManager.save(recipientTransaction),
+      ]);
+
+      return {
+        transaction: savedTransaction,
+        recipientTransaction: savedRecipientTransaction,
+      };
     });
   }
 

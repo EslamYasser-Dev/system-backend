@@ -7,13 +7,22 @@ export enum TransactionType {
   WITHDRAWAL = 'withdrawal',
   PAYMENT = 'payment',
   EARNING = 'earning',
-  REFUND = 'refund'
+  REFUND = 'refund',
+  TRANSFER_OUT = 'transfer_out',
+  TRANSFER_IN = 'transfer_in',
+  FEE = 'fee'
 }
 
 @Entity('wallet_transactions')
 export class WalletTransaction {
   @PrimaryColumn('uuid')
   id: string = uuid();
+
+  @Column({ type: 'uuid' })
+  userId!: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  relatedUserId?: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   amount!: number;
@@ -22,20 +31,20 @@ export class WalletTransaction {
   type!: TransactionType;
 
   @Column({ nullable: true })
-  description!: string;
+  description?: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  balanceAfter!: number;
 
   @Column({ type: 'jsonb', nullable: true })
-  metadata!: Record<string, any>;
-
-  @ManyToOne(() => User, user => user.transactions)
-  @JoinColumn({ name: 'userId' })
-  user!: User;
-
-  @Column('uuid')
-  userId!: string;
+  metadata?: Record<string, any>;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt!: Date;
+
+  @ManyToOne(() => User, user => user.transactions, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user!: User;
 
   constructor(partial?: Partial<WalletTransaction>) {
     Object.assign(this, partial);
