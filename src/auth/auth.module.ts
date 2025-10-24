@@ -12,7 +12,7 @@ config();
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]), // Assuming User entity is defined
+    TypeOrmModule.forFeature([User]),
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,

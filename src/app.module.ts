@@ -3,13 +3,15 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
-import { EmployeeModule } from './employee/employee.module';
-import { AttendanceModule } from './attendance/attendance.module';
 import { User } from './auth/user.entity';
-import { Employee } from './employee/employee.entity';
-import { Attendance } from './attendance/attendance.enitiy';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { WalletModule } from './wallet/wallet.module';
+import { WalletTransaction } from './wallet/wallet-transaction.entity';
+import { ProductsModule } from './products/products.module';
+import { Product } from './products/product.entity';
+import { OrdersModule } from './orders/orders.module';
+import { Order, OrderItem } from './orders/order.entity';
 
 @Module({
   imports: [
@@ -20,14 +22,22 @@ import { AppService } from './app.service';
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
-      entities: [User, Employee, Attendance],
-      synchronize: true, 
+      entities: [
+        User, 
+        WalletTransaction, 
+        Product, 
+        Order, 
+        OrderItem
+      ],
+      synchronize: true, // Set to false in production
+      logging: process.env.NODE_ENV === 'development',
     }),
     AuthModule,
-    EmployeeModule,
-    AttendanceModule,
+    WalletModule,
+    ProductsModule,
+    OrdersModule,
   ],
   controllers: [AppController],
-  providers:[AppService],
+  providers: [AppService],
 })
 export class AppModule {}
