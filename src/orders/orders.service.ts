@@ -39,10 +39,20 @@ export class OrdersService implements OnModuleInit {
 
   onModuleInit() {
     const stripeSecretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
-    if (stripeSecretKey) {
+    if (!stripeSecretKey) {
+      this.logger.warn('STRIPE_SECRET_KEY is not set. Stripe functionality will be disabled.');
+      return;
+    }
+    
+    try {
       this.stripe = new Stripe(stripeSecretKey, {
-        apiVersion: '2023-10-16',
-      });
+        apiVersion: '2025-09-30.clover', // Using the correct API version
+        typescript: true,
+      } as Stripe.StripeConfig);
+      this.logger.log('Stripe initialized successfully');
+    } catch (error) {
+      this.logger.error('Failed to initialize Stripe:', error);
+      throw new Error('Failed to initialize Stripe. Please check your configuration.');
     }
   }
 
@@ -164,79 +174,169 @@ export class OrdersService implements OnModuleInit {
     }
   }
 
-  private async createStripePaymentIntent(order: Order): Promise<void> {
+  private async createStripePaymentIntent(order: Order): Promise<{ clientSecret: string }> {
     if (!this.stripe) {
-      throw new Error('Stripe is not configured');
+      throw new BadRequestException('Stripe payment is not available');
     }
 
     try {
+      // Validate order amount
+      if (order.totalAmount <= 0) {
+        throw new BadRequestException('Invalid order amount');
+      }
+
+      const amountInCents = Math.round(order.totalAmount * 100);
+      
+      // Create payment intent
       const paymentIntent = await this.stripe.paymentIntents.create({
-        amount: Math.round(order.totalAmount * 100), // Convert to cents
+        amount: amountInCents,
         currency: 'usd',
-        metadata: { orderId: order.id },
+        metadata: { 
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+        },
         description: `Order #${order.orderNumber}`,
         payment_method_types: ['card'],
+        capture_method: 'automatic',
+        confirm: false,
       });
 
+      // Update order with payment intent details
+      const paymentDetails = {
+        ...(order.paymentDetails || {}),
+        clientSecret: paymentIntent.client_secret,
+        status: paymentIntent.status,
+      };
+      
       await this.orderRepository.update(order.id, {
         paymentId: paymentIntent.id,
-        paymentDetails: {
-          clientSecret: paymentIntent.client_secret,
-        },
+        paymentDetails: paymentDetails as any, // Type assertion for complex JSONB field
       });
+
+      return { clientSecret: paymentIntent.client_secret! };
     } catch (error) {
       this.logger.error('Failed to create Stripe payment intent:', error);
-      throw new BadRequestException('Failed to create payment intent');
+      
+      // Update order status to reflect payment failure
+      await this.updateOrderStatus(order.id, {
+        paymentStatus: PaymentStatus.FAILED,
+        status: OrderStatus.FAILED,
+        paymentDetails: {
+          ...order.paymentDetails,
+          error: error.message,
+        },
+      });
+      
+      if (error.code) {
+        throw new BadRequestException(`Payment processing failed: ${error.message}`);
+      }
+      throw new BadRequestException('Failed to process payment');
     }
   }
 
   async confirmStripePayment(
     paymentIntentId: string,
-  ): Promise<{ success: boolean; orderId?: string }> {
+  ): Promise<{ success: boolean; orderId: string; status: string }> {
     if (!this.stripe) {
-      throw new Error('Stripe is not configured');
+      throw new BadRequestException('Stripe payment is not available');
     }
 
-    const order = await this.orderRepository.findOne({
-      where: { paymentId: paymentIntentId },
-    });
-
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
+    // Start a transaction to ensure data consistency
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
     try {
+      const order = await queryRunner.manager.findOne(Order, {
+        where: { paymentId: paymentIntentId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!order) {
+        throw new NotFoundException('Order not found');
+      }
+
+      // Prevent duplicate processing
+      if (order.paymentStatus === PaymentStatus.PAID) {
+        return { 
+          success: true, 
+          orderId: order.id, 
+          status: 'already_processed' 
+        };
+      }
+
+      // Retrieve payment intent from Stripe
       const paymentIntent = await this.stripe.paymentIntents.retrieve(
         paymentIntentId,
+        { expand: ['charges.data.balance_transaction'] }
       );
 
-      if (paymentIntent.status === 'succeeded') {
-        await this.updateOrderStatus(order.id, {
-          paymentStatus: PaymentStatus.PAID,
-          status: OrderStatus.PROCESSING,
-          paymentDetails: {
-            ...order.paymentDetails,
-            paymentIntent,
-          },
-        });
+      // Update order based on payment status
+      switch (paymentIntent.status) {
+        case 'succeeded':
+          await this.updateOrderStatus(order.id, {
+            paymentStatus: PaymentStatus.PAID,
+            status: OrderStatus.PROCESSING,
+            paymentDetails: {
+              ...order.paymentDetails,
+              paymentIntent,
+              lastUpdated: new Date().toISOString(),
+            },
+          });
 
-        // Fulfill the order
-        await this.fulfillOrder(order.id);
+          // Fulfill the order
+          await this.fulfillOrder(order.id);
+          await queryRunner.commitTransaction();
+          
+          return { 
+            success: true, 
+            orderId: order.id, 
+            status: 'succeeded' 
+          };
 
-        return { success: true, orderId: order.id };
-      } else {
-        await this.updateOrderStatus(order.id, {
-          paymentStatus: PaymentStatus.FAILED,
-          status: OrderStatus.FAILED,
-          paymentDetails: {
-            ...order.paymentDetails,
-            paymentIntent,
-          },
-        });
+        case 'processing':
+        case 'requires_action':
+        case 'requires_payment_method':
+        case 'requires_confirmation':
+          // Payment is still being processed
+          await this.updateOrderStatus(order.id, {
+            paymentStatus: PaymentStatus.PENDING,
+            paymentDetails: {
+              ...order.paymentDetails,
+              paymentIntent,
+              lastUpdated: new Date().toISOString(),
+            },
+          });
+          await queryRunner.commitTransaction();
+          
+          return { 
+            success: false, 
+            orderId: order.id, 
+            status: paymentIntent.status 
+          };
 
-        return { success: false, orderId: order.id };
+        default:
+          // Handle failed or canceled payments
+          await this.updateOrderStatus(order.id, {
+            paymentStatus: PaymentStatus.FAILED,
+            status: OrderStatus.FAILED,
+            paymentDetails: {
+              ...order.paymentDetails,
+              paymentIntent,
+              lastUpdated: new Date().toISOString(),
+              error: paymentIntent.last_payment_error?.message || 'Payment failed',
+            },
+          });
+          await queryRunner.commitTransaction();
+          
+          return { 
+            success: false, 
+            orderId: order.id, 
+            status: paymentIntent.status 
+          };
       }
     } catch (error) {
+      await queryRunner.rollbackTransaction();
       this.logger.error('Error confirming Stripe payment:', error);
       throw new BadRequestException('Error confirming payment');
     }
