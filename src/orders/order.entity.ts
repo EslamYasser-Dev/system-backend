@@ -31,23 +31,23 @@ export class OrderItem {
   id: string = uuid();
 
   @Column('uuid')
-  orderId: string;
+  orderId!: string;
 
   @ManyToOne(() => Product)
   @JoinColumn({ name: 'productId' })
-  product: Product;
+  product!: Product;
 
   @Column('uuid')
-  productId: string;
+  productId!: string;
 
   @Column('int')
-  quantity: number;
+  quantity!: number;
 
   @Column('decimal', { precision: 10, scale: 2 })
-  unitPrice: number;
+  unitPrice!: number;
 
   @Column('decimal', { precision: 10, scale: 2 })
-  totalPrice: number;
+  totalPrice!: number;
 }
 
 @Entity('orders')
@@ -56,59 +56,59 @@ export class Order {
   id: string = uuid();
 
   @Column('varchar', { length: 50, unique: true })
-  orderNumber: string;
+  orderNumber!: string;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'userId' })
-  user: User;
+  user!: User;
 
   @Column('uuid')
-  userId: string;
+  userId!: string;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'merchantId' })
-  merchant: User;
+  merchant!: User;
 
   @Column('uuid')
-  merchantId: string;
+  merchantId!: string;
 
   @Column('decimal', { precision: 10, scale: 2 })
-  totalAmount: number;
+  totalAmount!: number;
 
   @Column({
     type: 'enum',
     enum: OrderStatus,
     default: OrderStatus.PENDING,
   })
-  status: OrderStatus;
+  status!: OrderStatus;
 
   @Column({
     type: 'enum',
     enum: PaymentMethod,
   })
-  paymentMethod: PaymentMethod;
+  paymentMethod!: PaymentMethod;
 
   @Column({
     type: 'enum',
     enum: PaymentStatus,
     default: PaymentStatus.PENDING,
   })
-  paymentStatus: PaymentStatus;
+  paymentStatus!: PaymentStatus;
 
   @Column({ nullable: true })
-  paymentId: string;
+  paymentId!: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  paymentDetails: Record<string, any>;
+  paymentDetails!: Record<string, any>;
 
   @OneToMany(() => OrderItem, item => item.orderId, { cascade: true })
-  items: OrderItem[];
+  items!: OrderItem[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+    updatedAt!: Date;
 
   // Virtual property to check if order is paid
   get isPaid(): boolean {

@@ -16,26 +16,26 @@ export class WalletTransaction {
   id: string = uuid();
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  amount: number;
+  amount!: number;
 
   @Column({ type: 'enum', enum: TransactionType })
-  type: TransactionType;
+  type!: TransactionType;
 
   @Column({ nullable: true })
-  description: string;
+  description!: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  metadata: Record<string, any>;
+  metadata!: Record<string, any>;
 
   @ManyToOne(() => User, user => user.transactions)
   @JoinColumn({ name: 'userId' })
-  user: User;
+  user!: User;
 
   @Column('uuid')
-  userId: string;
+  userId!: string;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createdAt: Date;
+  createdAt!: Date;
 
   constructor(partial?: Partial<WalletTransaction>) {
     Object.assign(this, partial);

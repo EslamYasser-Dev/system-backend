@@ -12,13 +12,13 @@ export class WalletController {
   constructor(private readonly walletService: WalletService) {}
 
   @Get('balance')
-  async getBalance(@Req() req) {
+  async getBalance(@Req() req:any) {
     return { balance: await this.walletService.getBalance(req.user.id) };
   }
 
   @Post('deposit')
   async deposit(
-    @Req() req,
+    @Req() req:any,
     @Body('amount') amount: number,
     @Body('description') description?: string,
   ) {
@@ -30,7 +30,7 @@ export class WalletController {
 
   @Post('withdraw')
   async withdraw(
-    @Req() req,
+    @Req() req:any,
     @Body('amount') amount: number,
     @Body('description') description?: string,
   ) {
@@ -42,7 +42,7 @@ export class WalletController {
 
   @Get('transactions')
   async getTransactions(
-    @Req() req,
+    @Req() req:any,
     @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
     @Query('offset', new ParseIntPipe({ optional: true })) offset = 0,
   ) {

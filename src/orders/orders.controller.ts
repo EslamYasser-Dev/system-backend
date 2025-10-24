@@ -33,7 +33,7 @@ export class OrdersController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async createOrder(
     @Body() createOrderDto: CreateOrderDto,
-    @Req() req,
+    @Req() req: any,
   ) {
     try {
       const order = await this.ordersService.createOrder(
@@ -57,7 +57,7 @@ export class OrdersController {
   @ApiOperation({ summary: 'Get user\'s orders' })
   @ApiResponse({ status: 200, description: 'Returns user orders' })
   async getUserOrders(
-    @Req() req,
+    @Req() req: any,
     @Query('status') status?: string,
   ) {
     const isMerchant = req.user.role === UserRole.MERCHANT;
@@ -77,7 +77,7 @@ export class OrdersController {
   @ApiOperation({ summary: 'Get order by ID' })
   @ApiResponse({ status: 200, description: 'Returns order details' })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  async getOrderById(@Param('id') orderId: string, @Req() req) {
+  async getOrderById(@Param('id') orderId: string, @Req() req: any) {
     try {
       const order = await this.ordersService.findOrderById(orderId, req.user.id);
       return {
@@ -95,7 +95,7 @@ export class OrdersController {
   @ApiResponse({ status: 200, description: 'Order cancelled successfully' })
   @ApiResponse({ status: 400, description: 'Cannot cancel order' })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  async cancelOrder(@Param('id') orderId: string, @Req() req) {
+  async cancelOrder(@Param('id') orderId: string, @Req() req: any) {
     try {
       const order = await this.ordersService.cancelOrder(orderId, req.user.id);
       return {
@@ -111,7 +111,7 @@ export class OrdersController {
   @Post('stripe/webhook')
   @ApiOperation({ summary: 'Stripe webhook handler' })
   @ApiResponse({ status: 200, description: 'Webhook processed' })
-  async handleStripeWebhook(@Req() req) {
+  async handleStripeWebhook(@Req() req: any) {
     const sig = req.headers['stripe-signature'];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -121,7 +121,7 @@ export class OrdersController {
       event = this.ordersService['stripe'].webhooks.constructEvent(
         req.rawBody,
         sig,
-        endpointSecret,
+        endpointSecret!,
       );
     } catch (err) {
       throw new BadRequestException(`Webhook Error: ${err.message}`);

@@ -63,9 +63,9 @@ export class AuthService {
     }
 
     const user = new User();
-    user.name = userData.name;
-    user.email = userData.email;
-    user.passwordHash = await bcrypt.hash(userData.passwordHash, 10);
+    user.name = userData.name!;
+    user.email = userData.email!;
+    user.passwordHash = await bcrypt.hash(userData.passwordHash!, 10);
     
     // Set role, default to USER if not provided
     user.role = userData.role || UserRole.USER;

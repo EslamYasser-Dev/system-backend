@@ -10,36 +10,36 @@ export class User {
   id: string = uuid();
 
   @Column()
-  name: string;
+  name!: string;
 
   @Column({ unique: true })
-  email: string;
+  email!: string;
 
   @Column()
-  passwordHash: string;
+  passwordHash!: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  walletBalance: number;
+  walletBalance!: number;
 
   @Column({ 
     type: 'enum', 
     enum: UserRole, 
     default: UserRole.USER 
   })
-  role: UserRole;
+  role!: UserRole;
 
   // For backward compatibility
   @Column({ nullable: true })
   group?: string;
 
   @OneToMany(() => WalletTransaction, transaction => transaction.user)
-  transactions: WalletTransaction[];
+  transactions!: WalletTransaction[];
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // Getter for backward compatibility
   get groupName(): string {

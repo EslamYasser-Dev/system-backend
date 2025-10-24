@@ -33,7 +33,7 @@ export class ProductsController {
   @ApiOperation({ summary: 'Create a new product (merchant only)' })
   @ApiResponse({ status: 201, description: 'The product has been successfully created.', type: Product })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  create(@Body() productData: Partial<Product>, @Req() req): Promise<Product> {
+  create(@Body() productData: Partial<Product>, @Req() req: any): Promise<Product> {
     return this.productsService.create(productData, req.user);
   }
 
@@ -57,7 +57,7 @@ export class ProductsController {
   @Roles(UserRole.MERCHANT)
   @ApiOperation({ summary: 'Get products for the current merchant' })
   @ApiResponse({ status: 200, description: 'Return merchant products.', type: [Product] })
-  getMerchantProducts(@Req() req) {
+  getMerchantProducts(@Req() req:any) {
     return this.productsService.getMerchantProducts(req.user.id);
   }
 
@@ -78,7 +78,7 @@ export class ProductsController {
   update(
     @Param('id') id: string,
     @Body() updateData: Partial<Product>,
-    @Req() req,
+    @Req() req:any,
   ): Promise<Product> {
     return this.productsService.update(id, updateData, req.user.id);
   }
@@ -89,7 +89,7 @@ export class ProductsController {
   @ApiResponse({ status: 200, description: 'The product has been successfully deleted.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'Product not found.' })
-  async remove(@Param('id') id: string, @Req() req): Promise<void> {
+  async remove(@Param('id') id: string, @Req() req:any): Promise<void> {
     await this.productsService.remove(id, req.user.id);
   }
 }

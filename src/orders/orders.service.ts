@@ -13,15 +13,14 @@ import { Order, OrderStatus, PaymentStatus, PaymentMethod, OrderItem } from './o
 import { User } from '../auth/user.entity';
 import { ProductsService } from '../products/products.service';
 import { WalletService } from '../wallet/wallet.service';
-import { v4 as uuid } from 'uuid';
-import { UserRole } from '../auth/user-role.enum';
+
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 
 @Injectable()
 export class OrdersService implements OnModuleInit {
   private readonly logger = new Logger(OrdersService.name);
-  private stripe: Stripe;
+  private stripe!: Stripe;
 
   constructor(
     @InjectRepository(Order)

@@ -5,21 +5,21 @@ import { PaymentMethod } from '../order.entity';
 export class OrderItemDto {
   @IsUUID()
   @IsNotEmpty()
-  productId: string;
+  productId!: string;
 
   @IsNumber()
   @IsPositive()
   @IsNotEmpty()
-  quantity: number;
+  quantity!: number;
 }
 
 export class CreateOrderDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)
-  items: OrderItemDto[];
+  items!: OrderItemDto[];
 
   @IsEnum(PaymentMethod)
   @IsNotEmpty()
-  paymentMethod: PaymentMethod;
+  paymentMethod!: PaymentMethod;
 }
