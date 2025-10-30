@@ -3,14 +3,14 @@ FROM node:22-alpine AS builder
 
 WORKDIR /usr/src/app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install Yarn
+RUN corepack enable && yarn set version stable
 
 # Copy package files for better layer caching
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json yarn.lock ./
 
 # Install dependencies including devDependencies
-RUN pnpm install --frozen-lockfile
+RUN yarn install --frozen-lockfile
 
 # Copy source code
 COPY . .
@@ -19,7 +19,7 @@ COPY . .
 RUN pnpm build
 
 # Remove devDependencies
-RUN pnpm prune --prod
+RUN yarn install --production --frozen-lockfile
 
 # Production stage
 FROM node:20-alpine
@@ -34,7 +34,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Copy package files
 COPY --from=builder /usr/src/app/package.json ./
-COPY --from=builder /usr/src/app/pnpm-lock.yaml* ./
+COPY --from=builder /usr/src/app/yarn.lock ./
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 
 # Copy built files from builder
