@@ -12,13 +12,13 @@ import { User } from './user.entity';
   imports: [
     ConfigModule,
     TypeOrmModule.forFeature([User]),
-    PassportModule.register({ defaultStrategy: 'jwt' }),
+    PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { 
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '1d')
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET', 'devel34o$ment-s@c34564574ret'),
+        signOptions: {
+          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '3600s'),
         },
       }),
       inject: [ConfigService],
@@ -26,6 +26,6 @@ import { User } from './user.entity';
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
-  exports: [AuthService, JwtModule, PassportModule],
+  exports: [AuthService],
 })
 export class AuthModule {}

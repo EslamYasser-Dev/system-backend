@@ -21,12 +21,12 @@ export class RegisterDto {
 
   @ApiProperty({
     example: 'securePassword123!',
-    description: 'User password (min 8 characters)',
+    description: 'User password (minimum 8 characters)',
     minLength: 8,
   })
   @IsString()
-  @MinLength(8)
   @IsNotEmpty()
+  @MinLength(8)
   password!: string;
 
   @ApiProperty({
@@ -35,5 +35,6 @@ export class RegisterDto {
     description: 'User role',
   })
   @IsEnum(UserRole)
+  @IsNotEmpty()
   role!: UserRole;
 }
