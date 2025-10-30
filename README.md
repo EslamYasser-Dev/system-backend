@@ -48,3 +48,16 @@ A backend system for handling digital product purchases with wallet and payment 
    npm install
    # or
    yarn
+
+
+## Running the app
+
+```bash
+# development
+npm run start:dev
+# production mode
+npm run start:prod
+```
+
+## Try
+ - after it run try via swagger : http://<hostIP|hostName>:<port>/api
