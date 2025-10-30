@@ -6,25 +6,28 @@ WORKDIR /usr/src/app
 # Copy package files for better layer caching
 COPY package*.json ./
 
+# Enable Yarn
+RUN corepack enable && yarn set version stable
+
 # Install dependencies including devDependencies
-RUN npm ci
+RUN yarn install --frozen-lockfile
 
 # Copy source code
 COPY . .
 
 # Build the application
-RUN pnpm build
+RUN yarn build
 
 # Remove devDependencies
-RUN npm prune --production
+RUN yarn install --production --frozen-lockfile
 
 # Production stage
 FROM node:22-alpine
 
 WORKDIR /usr/src/app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Enable Yarn
+RUN corepack enable && yarn set version stable
 
 # Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
