@@ -2,6 +2,8 @@
 
 A backend system for handling digital product purchases with wallet and payment gateway integration.
 
+in production this must be behind a reverse proxy and wrap its http to https(mTLS) and api gateway, docker  
+
 ## Features
 
 - **Authentication & Authorization**
@@ -33,7 +35,7 @@ A backend system for handling digital product purchases with wallet and payment 
 - **Backend**: NestJS
 - **Database**: PostgreSQL with TypeORM
 - **Authentication**: JWT
-- **Payment Processing**: Stripe
+- **Payment Processing**: Stripe (needs api key)
 - **Caching**: Redis (for future implementation)
 
 ## Setup
@@ -41,22 +43,23 @@ A backend system for handling digital product purchases with wallet and payment 
 1. **Prerequisites**
    - Node.js (v22+)
    - PostgreSQL
-   - npm or yarn
+   - pnpm or yarn
 
 2. **Install Dependencies**
    ```bash
-   npm install
+   pnpm install
    # or
    yarn
 
 
 ## Running the app
 
+
 ```bash
 # development
-npm run start:dev
+pnpm run start:dev
 # production mode
-npm run start:prod
+pnpm run start:prod
 ```
 
 ## Try
