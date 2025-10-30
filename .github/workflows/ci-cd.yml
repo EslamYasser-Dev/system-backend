@@ -23,22 +23,19 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '22.x'
-        cache: 'yarn'
+        cache: 'npm'
     
-    - name: Install Yarn
-      run: corepack enable && yarn set version stable
-    
-    - name: Install production dependencies
-      run: yarn install --production --frozen-lockfile
+    - name: Install dependencies
+      run: npm ci
     
     - name: Lint
-      run: yarn lint
+      run: npm run lint
     
     - name: Run tests
-      run: yarn test
+      run: npm test
     
     - name: Build
-      run: yarn build
+      run: npm run build
 
   deploy:
     needs: test
@@ -52,6 +49,7 @@ jobs:
       uses: docker/setup-buildx-action@v2
     
     - name: Login to Docker Hub
+      if: github.ref == 'refs/heads/main'
       uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -67,12 +65,13 @@ jobs:
           ${{ env.DOCKER_IMAGE }}:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        build-args: |
+          NODE_ENV=production
     
     - name: Deploy to production
       if: github.ref == 'refs/heads/main'
       run: |
-        # Add your deployment commands here
-        # Example: ssh into server and run docker-compose up -d
+        # Add your production deployment commands here
         echo "Deploying to production..."
     
     - name: Deploy to staging

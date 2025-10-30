@@ -3,14 +3,11 @@ FROM node:22-alpine AS builder
 
 WORKDIR /usr/src/app
 
-# Install Yarn
-RUN corepack enable && yarn set version stable
-
 # Copy package files for better layer caching
-COPY package.json yarn.lock ./
+COPY package*.json ./
 
 # Install dependencies including devDependencies
-RUN yarn install --frozen-lockfile
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -19,10 +16,10 @@ COPY . .
 RUN pnpm build
 
 # Remove devDependencies
-RUN yarn install --production --frozen-lockfile
+RUN npm prune --production
 
 # Production stage
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /usr/src/app
 
@@ -32,9 +29,8 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Copy package files
-COPY --from=builder /usr/src/app/package.json ./
-COPY --from=builder /usr/src/app/yarn.lock ./
+# Copy package files and node_modules
+COPY --from=builder /usr/src/app/package*.json ./
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 
 # Copy built files from builder
@@ -50,9 +46,6 @@ USER appuser
 # Expose the port the app runs on
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node -e "require('http').request('http://localhost:3000/api/health', console.log).on('error', process.exit(1)).end()"
 
 # Command to run the application using node instead of pnpm for better signal handling
 CMD ["node", "dist/main.js"]
