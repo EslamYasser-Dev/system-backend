@@ -45,7 +45,7 @@ export class OrdersService implements OnModuleInit {
     
     try {
       this.stripe = new Stripe(stripeSecretKey, {
-        apiVersion: '2025-09-30.clover', // Using the correct API version
+        apiVersion: '2025-10-29.clover', // Updated to match the expected API version
         typescript: true,
       } as Stripe.StripeConfig);
       this.logger.log('Stripe initialized successfully');
