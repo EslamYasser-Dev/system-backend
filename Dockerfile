@@ -6,8 +6,8 @@ WORKDIR /usr/src/app
 # Copy package files for better layer caching
 COPY package*.json ./
 
-# Enable Yarn
-RUN corepack enable && yarn set version stable
+# Enable Corepack and install specific Yarn version
+RUN corepack enable && corepack prepare yarn@1.22.0 --activate
 
 # Install dependencies including devDependencies
 RUN yarn install --frozen-lockfile
@@ -26,8 +26,8 @@ FROM node:22-alpine
 
 WORKDIR /usr/src/app
 
-# Enable Yarn
-RUN corepack enable && yarn set version stable
+# Enable Corepack and install specific Yarn version
+RUN corepack enable && corepack prepare yarn@1.22.0 --activate
 
 # Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
