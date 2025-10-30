@@ -1,8 +1,9 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "system-backend",
   "version": "0.0.1",
   "description": "",
-  "author": "Eslam Yasser, Ali Omar",
+  "author": "Eslam Yasser",
   "private": true,
   "license": "Apache-2.0",
   "scripts": {
